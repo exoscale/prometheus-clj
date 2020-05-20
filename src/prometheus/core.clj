@@ -1,13 +1,13 @@
 (ns prometheus.core
   (:require
-    [clojure.string :as string])
+   [clojure.string :as string])
   (:import
-    (clojure.lang IObj)
-    (java.io StringWriter)
-    (io.prometheus.client.hotspot DefaultExports)
-    (io.prometheus.client.exporter.common TextFormat)
-    (io.prometheus.client.exporter PushGateway)
-    (io.prometheus.client Counter Histogram Counter$Child Histogram$Child CollectorRegistry Gauge Gauge$Child)))
+   (clojure.lang IObj)
+   (java.io StringWriter)
+   (io.prometheus.client.hotspot DefaultExports)
+   (io.prometheus.client.exporter.common TextFormat)
+   (io.prometheus.client.exporter PushGateway)
+   (io.prometheus.client Counter Histogram Counter$Child Histogram$Child CollectorRegistry Gauge Gauge$Child)))
 
 ; more useful set of buckets for microservice APIs than the defaults provided by the Histogram class
 (def request-latency-histogram-buckets (atom [0.001, 0.005, 0.010, 0.020, 0.050, 0.100, 0.200, 0.300, 0.500, 0.750, 1, 5]))
@@ -46,41 +46,51 @@
 (defn register-counter
   "Registers a counter to the store and returns the new store."
   [store namespace metric help label-names]
-  (assoc-in store [:metrics namespace metric] (make-counter (:registry store) namespace metric help label-names)))
+  (some-> store
+          (as-> $ (assoc-in $ [:metrics namespace metric]
+                            (make-counter (:registry $) namespace metric help label-names)))))
 
 (defn register-gauge
   "Registers a gauge to the store and returns the new store."
   [store namespace metric help label-names]
-  (assoc-in store [:metrics namespace metric] (make-gauge (:registry store) namespace metric help label-names)))
+  (some-> store
+          (as-> $ (assoc-in $ [:metrics namespace metric]
+                            (make-gauge (:registry $) namespace metric help label-names)))))
 
 (defn register-histogram
   "Registers a histogram to the store and returns the new store."
   [store namespace metric help label-names buckets]
-  (assoc-in store
-            [:metrics namespace metric]
-            (make-histogram (:registry store) namespace metric help label-names buckets)))
+  (some-> store
+          (as-> $ (assoc-in $ [:metrics namespace metric]
+                            (make-histogram (:registry $) namespace metric help label-names buckets)))))
 
 (defn increase-counter
   "Increase the value of a registered counter."
   ([store namespace metric] (increase-counter store namespace metric [] 1.0))
   ([store namespace metric labels] (increase-counter store namespace metric labels 1.0))
   ([store namespace metric labels amount]
-   (-> (counter-with-labels (get-in store [:metrics namespace metric]) labels)
-       (.inc amount))))
+   (some-> store
+           (get-in [:metrics namespace metric])
+           (counter-with-labels labels)
+           (.inc amount))))
 
 (defn set-gauge
   "Set the value of a registered gauge."
   ([store namespace metric value] (set-gauge store namespace metric value []))
   ([store namespace metric value labels]
-   (-> (gauge-with-labels (get-in store [:metrics namespace metric]) labels)
-       (.set value))))
+   (some-> store
+           (get-in [:metrics namespace metric])
+           (gauge-with-labels  labels)
+           (.set value))))
 
 (defn track-observation
   "Track the value of an observation for a registered histogram."
   ([store namespace metric value] (track-observation store namespace metric value []))
   ([store namespace metric value labels]
-   (-> (histogram-with-labels (get-in store [:metrics namespace metric]) labels)
-       (.observe value))))
+   (some-> store
+           (get-in [:metrics namespace metric])
+           (histogram-with-labels labels)
+           (.observe value))))
 
 (defn init-defaults
   "Initialize the metrics system with defaults."
