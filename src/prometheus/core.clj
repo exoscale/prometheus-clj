@@ -46,23 +46,23 @@
 (defn register-counter
   "Registers a counter to the store and returns the new store."
   [store namespace metric help label-names]
-  (some-> store
-          (as-> $ (assoc-in $ [:metrics namespace metric]
-                            (make-counter (:registry $) namespace metric help label-names)))))
+  (when store
+    (assoc-in store [:metrics namespace metric]
+              (make-counter (:registry store) namespace metric help label-names))))
 
 (defn register-gauge
   "Registers a gauge to the store and returns the new store."
   [store namespace metric help label-names]
-  (some-> store
-          (as-> $ (assoc-in $ [:metrics namespace metric]
-                            (make-gauge (:registry $) namespace metric help label-names)))))
+  (when store
+    (assoc-in store [:metrics namespace metric]
+              (make-gauge (:registry store) namespace metric help label-names))))
 
 (defn register-histogram
   "Registers a histogram to the store and returns the new store."
   [store namespace metric help label-names buckets]
-  (some-> store
-          (as-> $ (assoc-in $ [:metrics namespace metric]
-                            (make-histogram (:registry $) namespace metric help label-names buckets)))))
+  (when store
+    (assoc-in store [:metrics namespace metric]
+              (make-histogram (:registry store) namespace metric help label-names buckets))))
 
 (defn increase-counter
   "Increase the value of a registered counter."
